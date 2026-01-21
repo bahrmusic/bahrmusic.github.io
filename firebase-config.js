@@ -3,38 +3,19 @@ const firebaseConfig = {
     databaseURL: "https://b-store-31433-default-rtdb.firebaseio.com/"
 };
 
-// Initialize Firebase
-let app;
-let database;
-let dbHelpers;
-
+// Инициализация Firebase
 try {
-    // Проверяем, инициализировано ли уже приложение
     if (!firebase.apps.length) {
-        app = firebase.initializeApp(firebaseConfig);
-    } else {
-        app = firebase.app();
+        firebase.initializeApp(firebaseConfig);
     }
     
-    database = firebase.database();
-    console.log('Firebase успешно инициализирован');
+    const database = firebase.database();
     
-    // API URL for file hosting (из твоего файла)
-    const API_URL = 'https://yyf.mubilop.com';
-    
-    // Firebase структура
-    const DB_PATHS = {
-        TRACKS: 'tracks',
-        PLAYS: 'plays',
-        LIKES: 'likes',
-        USERS: 'users'
-    };
-    
-    // Helper functions
-    dbHelpers = {
+    // Создаём простые функции для работы с базой
+    window.dbHelpers = {
         // Добавить трек
         async addTrack(trackData) {
-            const newTrackRef = database.ref(DB_PATHS.TRACKS).push();
+            const newTrackRef = database.ref('tracks').push();
             const trackId = newTrackRef.key;
             
             const trackWithId = {
@@ -51,107 +32,123 @@ try {
         
         // Получить все треки
         async getAllTracks() {
-            const snapshot = await database.ref(DB_PATHS.TRACKS).once('value');
-            const tracks = snapshot.val() || {};
-            return Object.values(tracks).sort((a, b) => b.timestamp - a.timestamp);
-        },
-        
-        // Получить популярные треки
-        async getPopularTracks(limit = 10) {
-            const tracks = await this.getAllTracks();
-            return tracks
-                .sort((a, b) => b.plays - a.plays)
-                .slice(0, limit);
+            const snapshot = await database.ref('tracks').once('value');
+            const tracks = snapshot.val();
+            
+            if (!tracks) return [];
+            
+            // Преобразуем объект в массив
+            return Object.keys(tracks).map(key => ({
+                id: key,
+                ...tracks[key]
+            })).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
         },
         
         // Получить трек по ID
         async getTrackById(trackId) {
-            const snapshot = await database.ref(`${DB_PATHS.TRACKS}/${trackId}`).once('value');
+            const snapshot = await database.ref('tracks/' + trackId).once('value');
             return snapshot.val();
         },
         
         // Увеличить счётчик прослушиваний
         async incrementPlays(trackId) {
-            const trackRef = database.ref(`${DB_PATHS.TRACKS}/${trackId}`);
+            const trackRef = database.ref('tracks/' + trackId);
             const snapshot = await trackRef.once('value');
             const track = snapshot.val();
             
             if (track) {
-                const currentPlays = track.plays || 0;
-                await trackRef.update({ plays: currentPlays + 1 });
+                await trackRef.update({
+                    plays: (track.plays || 0) + 1
+                });
             }
         },
         
-        // Обновить лайки
-        async toggleLike(trackId, userId) {
-            const likeRef = database.ref(`${DB_PATHS.LIKES}/${trackId}/${userId}`);
-            const snapshot = await likeRef.once('value');
-            const isLiked = snapshot.exists();
+        // Добавить лайк
+        async addLike(trackId, userId) {
+            await database.ref('likes/' + trackId + '/' + userId).set(true);
             
-            const trackRef = database.ref(`${DB_PATHS.TRACKS}/${trackId}`);
-            const trackSnapshot = await trackRef.once('value');
-            const track = trackSnapshot.val();
+            // Обновляем счётчик лайков у трека
+            const trackRef = database.ref('tracks/' + trackId);
+            const snapshot = await trackRef.once('value');
+            const track = snapshot.val();
             
-            if (!track) return false;
+            if (track) {
+                await trackRef.update({
+                    likes: (track.likes || 0) + 1
+                });
+            }
+        },
+        
+        // Убрать лайк
+        async removeLike(trackId, userId) {
+            await database.ref('likes/' + trackId + '/' + userId).remove();
             
-            const currentLikes = track.likes || 0;
+            // Обновляем счётчик лайков у трека
+            const trackRef = database.ref('tracks/' + trackId);
+            const snapshot = await trackRef.once('value');
+            const track = snapshot.val();
             
-            if (isLiked) {
-                await likeRef.remove();
-                await trackRef.update({ likes: Math.max(0, currentLikes - 1) });
-                return false;
-            } else {
-                await likeRef.set(true);
-                await trackRef.update({ likes: currentLikes + 1 });
-                return true;
+            if (track && track.likes > 0) {
+                await trackRef.update({
+                    likes: track.likes - 1
+                });
             }
         },
         
         // Проверить лайк пользователя
         async checkUserLike(trackId, userId) {
-            const snapshot = await database.ref(`${DB_PATHS.LIKES}/${trackId}/${userId}`).once('value');
+            const snapshot = await database.ref('likes/' + trackId + '/' + userId).once('value');
             return snapshot.exists();
-        },
-        
-        // Поиск треков
-        async searchTracks(query) {
-            const tracks = await this.getAllTracks();
-            const searchTerm = query.toLowerCase();
-            
-            return tracks.filter(track => 
-                track.title.toLowerCase().includes(searchTerm) ||
-                track.artist.toLowerCase().includes(searchTerm)
-            );
         }
     };
     
-    // Сделать dbHelpers глобально доступным
-    window.dbHelpers = dbHelpers;
+    console.log('Firebase успешно инициализирован');
     
 } catch (error) {
-    console.error('Ошибка инициализации Firebase:', error);
+    console.error('Ошибка Firebase:', error);
     
-    // Заглушка для режима разработки
+    // Если Firebase не работает, используем заглушку
     window.dbHelpers = {
-        addTrack: async () => ({ id: 'demo-' + Date.now() }),
-        getAllTracks: async () => [],
-        getTrackById: async () => null,
-        incrementPlays: async () => {},
-        toggleLike: async () => false,
-        checkUserLike: async () => false,
-        searchTracks: async () => []
+        addTrack: async function(trackData) {
+            console.log('Демо: Добавление трека', trackData);
+            return {
+                ...trackData,
+                id: 'demo-' + Date.now(),
+                timestamp: Date.now(),
+                plays: 0,
+                likes: 0
+            };
+        },
+        getAllTracks: async function() {
+            console.log('Демо: Получение всех треков');
+            return [];
+        },
+        getTrackById: async function() {
+            console.log('Демо: Получение трека по ID');
+            return null;
+        },
+        incrementPlays: async function() {
+            console.log('Демо: Увеличение счётчика прослушиваний');
+        },
+        addLike: async function() {
+            console.log('Демо: Добавление лайка');
+        },
+        removeLike: async function() {
+            console.log('Демо: Удаление лайка');
+        },
+        checkUserLike: async function() {
+            console.log('Демо: Проверка лайка');
+            return false;
+        }
     };
 }
 
-// Генерация уникального ID пользователя
-function getUserId() {
+// Функция для получения ID пользователя
+window.getUserId = function() {
     let userId = localStorage.getItem('bahr_user_id');
     if (!userId) {
-        userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        userId = 'user_' + Math.random().toString(36).substr(2, 9);
         localStorage.setItem('bahr_user_id', userId);
     }
     return userId;
-}
-
-// Сделать глобально доступным
-window.getUserId = getUserId;
+};
