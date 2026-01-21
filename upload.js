@@ -1,4 +1,29 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // Проверяем доступность dbHelpers
+    if (typeof dbHelpers === 'undefined') {
+        console.error('dbHelpers не определен. Проверьте загрузку firebase-config.js');
+        
+        // Показываем сообщение об ошибке
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message';
+        errorDiv.innerHTML = `
+            <h4><i class="fas fa-exclamation-triangle"></i> Ошибка загрузки</h4>
+            <p>Не удалось подключиться к базе данных. Пожалуйста, обновите страницу.</p>
+        `;
+        errorDiv.style.cssText = `
+            background: rgba(220, 53, 69, 0.2);
+            color: #dc3545;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px;
+            border: 2px solid #dc3545;
+            text-align: center;
+        `;
+        
+        document.querySelector('.upload-main').prepend(errorDiv);
+        return;
+    }
+    
     // Элементы DOM
     const dropZone = document.getElementById('dropZone');
     const audioFileInput = document.getElementById('audioFileInput');
@@ -21,6 +46,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Инициализация
     function init() {
+        console.log('Инициализация формы загрузки');
+        console.log('dbHelpers доступен:', typeof dbHelpers !== 'undefined');
         setupEventListeners();
     }
     
@@ -75,9 +102,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Обработка файла
     function handleFile(file) {
+        console.log('Выбран файл:', file.name, file.type, file.size);
+        
         // Проверка типа файла
         if (!file.type.startsWith('audio/')) {
-            showError('Пожалуйста, выберите аудиофайл');
+            showError('Пожалуйста, выберите аудиофайл (MP3, WAV, FLAC, M4A и др.)');
             return;
         }
         
@@ -108,6 +137,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const audioUrl = URL.createObjectURL(file);
         previewAudio.src = audioUrl;
         
+        // Загрузить метаданные для получения длительности
+        previewAudio.onloadedmetadata = function() {
+            formData.duration = previewAudio.duration * 1000; // в миллисекундах
+            console.log('Длительность трека:', formData.duration, 'мс');
+        };
+        
         // Показать секцию
         previewSection.style.display = 'block';
         
@@ -121,12 +156,6 @@ document.addEventListener('DOMContentLoaded', function() {
             showError('Пожалуйста, выберите аудиофайл');
             return;
         }
-        
-        // Сохранить продолжительность трека
-        const previewAudio = document.getElementById('previewAudio');
-        previewAudio.addEventListener('loadedmetadata', () => {
-            formData.duration = previewAudio.duration * 1000; // в миллисекундах
-        });
         
         changeStep(1, 2);
     }
@@ -195,15 +224,24 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Опубликовать трек
     async function publishTrack() {
+        console.log('Начало публикации трека...');
+        
+        // Блокируем кнопку
+        publishBtn.disabled = true;
+        publishBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Публикация...';
+        
         // Показать статус загрузки
         showUploadStatus('processing', 'Загрузка аудиофайла...');
         
         try {
             // 1. Загрузить аудиофайл на хостинг
+            console.log('Загрузка файла на хостинг...');
             const audioUrl = await uploadToHosting(formData.audioFile);
             formData.audioUrl = audioUrl;
+            console.log('Файл загружен, URL:', audioUrl);
             
             // 2. Сохранить данные трека в Firebase
+            console.log('Сохранение данных в Firebase...');
             const trackData = {
                 title: formData.title,
                 artist: formData.artist,
@@ -217,14 +255,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 uploaderId: getUserId()
             };
             
-            await dbHelpers.addTrack(trackData);
+            console.log('Данные трека:', trackData);
+            
+            const result = await dbHelpers.addTrack(trackData);
+            console.log('Трек сохранен, ID:', result.id);
             
             // 3. Показать успех
             showUploadStatus('success', `
                 <h4><i class="fas fa-check-circle"></i> Трек успешно опубликован!</h4>
                 <p>Теперь он доступен для всех пользователей BAHR MUSIC.</p>
                 <div class="success-actions">
-                    <button onclick="window.location.href='index.html?id=${trackData.id}'" class="btn-primary">
+                    <button onclick="window.location.href='index.html?id=${result.id}'" class="btn-primary">
                         <i class="fas fa-play"></i> Слушать трек
                     </button>
                     <button onclick="window.location.href='upload.html'" class="btn-secondary">
@@ -240,27 +281,43 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Ошибка публикации:', error);
             showUploadStatus('error', `
                 <h4><i class="fas fa-exclamation-circle"></i> Ошибка публикации</h4>
-                <p>${error.message}</p>
+                <p>${error.message || 'Неизвестная ошибка'}</p>
                 <button onclick="location.reload()" class="btn-secondary">Попробовать снова</button>
             `);
+        } finally {
+            // Разблокировать кнопку
+            publishBtn.disabled = false;
+            publishBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Опубликовать трек';
         }
     }
     
     // Загрузить файл на хостинг (используя твой API)
     async function uploadToHosting(file) {
-        const formData = new FormData();
-        formData.append('file', file, file.name);
+        console.log('Начало загрузки файла:', file.name, file.size);
+        
+        const formDataObj = new FormData();
+        formDataObj.append('file', file, file.name);
         
         const response = await fetch('https://yyf.mubilop.com/api/upload', {
             method: 'POST',
-            body: formData
+            body: formDataObj
         });
         
+        console.log('Ответ от сервера:', response.status);
+        
         if (!response.ok) {
-            throw new Error('Ошибка загрузки файла');
+            const errorText = await response.text();
+            console.error('Ошибка сервера:', errorText);
+            throw new Error(`Ошибка загрузки файла: ${response.status} ${response.statusText}`);
         }
         
         const data = await response.json();
+        console.log('Данные от сервера:', data);
+        
+        if (!data.fileUrl) {
+            throw new Error('Сервер не вернул ссылку на файл');
+        }
+        
         return 'https://yyf.mubilop.com' + data.fileUrl;
     }
     
@@ -317,6 +374,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Сбросить input файла
         audioFileInput.value = '';
+        
+        // Вернуться к шагу 1
+        changeStep(3, 1);
     }
     
     // Форматирование размера файла
