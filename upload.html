@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Загрузить трек | BAHR MUSIC</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="upload-container">
+        <header class="upload-header">
+            <button class="back-btn" onclick="window.location.href='index.html'">
+                <i class="fas fa-arrow-left"></i>
+                Назад
+            </button>
+            <h1><i class="fas fa-cloud-upload-alt"></i> Загрузить трек</h1>
+            <p>Поделитесь своей музыкой с миром</p>
+        </header>
+
+        <main class="upload-main">
+            <div class="upload-steps">
+                <div class="step active">
+                    <span>1</span>
+                    <p>Загрузка файла</p>
+                </div>
+                <div class="step">
+                    <span>2</span>
+                    <p>Информация</p>
+                </div>
+                <div class="step">
+                    <span>3</span>
+                    <p>Публикация</p>
+                </div>
+            </div>
+
+            <div class="upload-form">
+                <!-- Шаг 1: Загрузка файла -->
+                <div class="step-content active" id="step1">
+                    <div class="file-upload-area" id="dropZone">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <h3>Перетащите аудиофайл сюда</h3>
+                        <p>Или нажмите для выбора файла</p>
+                        <p class="file-types">Поддерживаемые форматы: MP3, WAV, FLAC, M4A (макс. 50MB)</p>
+                        <input type="file" id="audioFileInput" accept="audio/*" hidden>
+                    </div>
+                    
+                    <div class="preview-section" id="audioPreview" style="display: none;">
+                        <div class="audio-preview">
+                            <i class="fas fa-music"></i>
+                            <div class="preview-info">
+                                <h4 id="previewFileName"></h4>
+                                <p id="previewFileSize"></p>
+                            </div>
+                            <audio controls id="previewAudio"></audio>
+                        </div>
+                        <button class="btn-primary" id="nextStep1">Продолжить</button>
+                    </div>
+                </div>
+
+                <!-- Шаг 2: Информация о треке -->
+                <div class="step-content" id="step2">
+                    <div class="form-group">
+                        <label for="trackTitle">Название трека *</label>
+                        <input type="text" id="trackTitle" placeholder="Введите название трека" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="artistName">Имя исполнителя *</label>
+                        <input type="text" id="artistName" placeholder="Введите ваше имя или псевдоним" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="genre">Жанр</label>
+                        <select id="genre">
+                            <option value="">Выберите жанр</option>
+                            <option value="pop">Поп</option>
+                            <option value="rap">Рэп / Хип-хоп</option>
+                            <option value="rock">Рок</option>
+                            <option value="electronic">Электронная</option>
+                            <option value="jazz">Джаз</option>
+                            <option value="classical">Классическая</option>
+                            <option value="folk">Фолк</option>
+                            <option value="other">Другое</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="trackDescription">Описание (необязательно)</label>
+                        <textarea id="trackDescription" placeholder="Расскажите о вашем треке..." rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button class="btn-secondary" id="backStep2">Назад</button>
+                        <button class="btn-primary" id="nextStep2">Продолжить</button>
+                    </div>
+                </div>
+
+                <!-- Шаг 3: Публикация -->
+                <div class="step-content" id="step3">
+                    <div class="publish-summary">
+                        <h3><i class="fas fa-check-circle"></i> Готово к публикации!</h3>
+                        
+                        <div class="summary-item">
+                            <strong>Трек:</strong>
+                            <span id="summaryTitle"></span>
+                        </div>
+                        
+                        <div class="summary-item">
+                            <strong>Исполнитель:</strong>
+                            <span id="summaryArtist"></span>
+                        </div>
+                        
+                        <div class="summary-item">
+                            <strong>Жанр:</strong>
+                            <span id="summaryGenre"></span>
+                        </div>
+                        
+                        <div class="summary-item">
+                            <strong>Размер файла:</strong>
+                            <span id="summarySize"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="publish-note">
+                        <p><i class="fas fa-info-circle"></i> После публикации трек появится в общем доступе на BAHR MUSIC. Любой пользователь сможет его слушать и делиться ссылкой.</p>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button class="btn-secondary" id="backStep3">Назад</button>
+                        <button class="btn-primary" id="publishBtn">
+                            <i class="fas fa-paper-plane"></i>
+                            Опубликовать трек
+                        </button>
+                    </div>
+                    
+                    <div class="upload-status" id="uploadStatus">
+                        <!-- Статус загрузки -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="firebase-config.js"></script>
+    <script src="upload.js"></script>
+</body>
+</html>
