@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>BAHR MUSIC | Слушай и делись музыкой</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="assets/icons/favicon.ico">
+</head>
+<body>
+    <!-- Главный контейнер -->
+    <div class="app-container">
+        
+        <!-- Верхняя панель -->
+        <header class="top-bar">
+            <div class="logo">
+                <i class="fas fa-music"></i>
+                <span>BAHR MUSIC</span>
+            </div>
+            
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Поиск музыки, исполнителей...">
+            </div>
+            
+            <button class="upload-btn" onclick="window.location.href='upload.html'">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <span>Загрузить</span>
+            </button>
+        </header>
+        
+        <!-- Основной контент -->
+        <main class="main-content">
+            
+            <!-- Приветственная секция -->
+            <section class="welcome-section">
+                <h1>Слушай музыку бесплатно</h1>
+                <p>Загружай свои треки, делись с друзьями, открывай новые звуки</p>
+            </section>
+            
+            <!-- Популярные треки -->
+            <section class="music-section">
+                <div class="section-header">
+                    <h2>Популярные треки</h2>
+                    <button class="see-all" id="loadPopular">Показать все</button>
+                </div>
+                <div class="tracks-grid" id="popularTracks">
+                    <!-- Треки загружаются через JS -->
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Загрузка музыки...</p>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Новинки -->
+            <section class="music-section">
+                <div class="section-header">
+                    <h2>Новинки</h2>
+                    <button class="see-all" id="loadNew">Показать все</button>
+                </div>
+                <div class="tracks-grid" id="newTracks">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Загрузка новинок...</p>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Все треки -->
+            <section class="music-section">
+                <div class="section-header">
+                    <h2>Вся музыка</h2>
+                </div>
+                <div class="tracks-list" id="allTracks">
+                    <!-- Полный список треков -->
+                </div>
+            </section>
+            
+        </main>
+        
+        <!-- Плеер (фиксированный снизу) -->
+        <div class="player-container" id="playerContainer">
+            <div class="player">
+                <!-- Текущий трек -->
+                <div class="current-track" id="currentTrackInfo">
+                    <div class="track-image">
+                        <i class="fas fa-music"></i>
+                    </div>
+                    <div class="track-details">
+                        <h4 class="track-title">Не выбрано</h4>
+                        <p class="track-artist">Выберите трек</p>
+                    </div>
+                    <button class="like-btn" id="likeBtn">
+                        <i class="far fa-heart"></i>
+                    </button>
+                </div>
+                
+                <!-- Элементы управления -->
+                <div class="player-controls">
+                    <button class="control-btn" id="prevBtn">
+                        <i class="fas fa-step-backward"></i>
+                    </button>
+                    <button class="play-btn" id="playBtn">
+                        <i class="fas fa-play" id="playIcon"></i>
+                    </button>
+                    <button class="control-btn" id="nextBtn">
+                        <i class="fas fa-step-forward"></i>
+                    </button>
+                </div>
+                
+                <!-- Прогресс-бар -->
+                <div class="progress-container">
+                    <span class="time current-time" id="currentTime">0:00</span>
+                    <div class="progress-bar" id="progressBar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <span class="time total-time" id="totalTime">0:00</span>
+                </div>
+                
+                <!-- Громкость и шеринг -->
+                <div class="player-extra">
+                    <div class="volume-control">
+                        <i class="fas fa-volume-up" id="volumeIcon"></i>
+                        <input type="range" id="volumeSlider" min="0" max="100" value="70">
+                    </div>
+                    <button class="share-btn" id="shareBtn" title="Поделиться треком">
+                        <i class="fas fa-share-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Аудио элемент -->
+        <audio id="audioPlayer" preload="metadata"></audio>
+        
+        <!-- Модальное окно шеринга -->
+        <div class="modal" id="shareModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Поделиться треком</h3>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>Скопируйте ссылку на этот трек:</p>
+                    <div class="share-url">
+                        <input type="text" id="shareUrlInput" readonly>
+                        <button id="copyShareUrl">Копировать</button>
+                    </div>
+                    <p class="share-note">Когда кто-то откроет эту ссылку, трек начнёт играть автоматически!</p>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <script src="firebase-config.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
